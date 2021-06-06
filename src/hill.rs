@@ -13,7 +13,6 @@ impl HillCipher {
             panic!("Hill key length shall be <= {}", CRY_HILL_KEYLEN_MAX);
         }
         let inner: cry_hill_ctx = unsafe {
-            //cry_hill_init(&ctx, key, ikey, keylen)
             #[allow(clippy::uninit_assumed_init)]
             let mut inner = MaybeUninit::uninit().assume_init();
             let ctx = &mut inner as *mut _;
