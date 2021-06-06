@@ -1,0 +1,13 @@
+[package]
+name = "cry-rs"
+version = "0.1.0"
+authors = ["Davide Galassi <davxy@datawok.net>"]
+description = "CRY crypto library Rust wrapper"
+license = "MIT"
+edition = "2018"
+
+[dependencies]
+cry-sys = "0.1.0"
+
+[dev-dependencies]
+hex = "0.4.3"
