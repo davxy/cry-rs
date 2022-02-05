@@ -3,14 +3,22 @@ use cry_sys::bindings::{
     cry_hill_ctx, cry_hill_decrypt, cry_hill_encrypt, cry_hill_init, CRY_HILL_KEYLEN_MAX,
 };
 
+/// Hill cipher context.
 pub struct HillCipher {
     inner: cry_hill_ctx,
 }
 
 impl HillCipher {
+    /// Max key length.
+    pub const KEYLEN_MAX: usize = CRY_HILL_KEYLEN_MAX as usize;
+
+    /// Instance a new Hill cipher context.
     pub fn new(key: &[u8]) -> Result<Self, String> {
-        if key.len() > CRY_HILL_KEYLEN_MAX as usize {
-            panic!("Hill key length shall be <= {}", CRY_HILL_KEYLEN_MAX);
+        if key.len() > Self::KEYLEN_MAX {
+            return Err(format!(
+                "Key length shall be less than {}",
+                Self::KEYLEN_MAX
+            ));
         }
         let inner: cry_hill_ctx = unsafe {
             #[allow(clippy::uninit_assumed_init)]
@@ -18,13 +26,14 @@ impl HillCipher {
             let ctx = &mut inner as *mut _;
             let result = cry_hill_init(ctx, key.as_ptr(), core::ptr::null(), key.len() as u64);
             if result < 0 {
-                return Err("Invalid Hill key".into());
+                return Err("Invalid key".into());
             }
             inner
         };
         Ok(HillCipher { inner })
     }
 
+    /// Encrypt the given plaintext.
     pub fn encrypt(&self, input: &[u8]) -> Vec<u8> {
         let mut output = vec![0; input.len()];
         unsafe {
@@ -34,6 +43,7 @@ impl HillCipher {
         output
     }
 
+    /// Decrypt the given ciphertext.
     pub fn decrypt(&self, input: &[u8]) -> Vec<u8> {
         let mut output = vec![0; input.len()];
         unsafe {

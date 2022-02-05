@@ -3,15 +3,13 @@ name = "cry-rs"
 version = "0.1.0"
 authors = ["Davide Galassi <davxy@datawok.net>"]
 description = "CRY crypto library wrapper in Rust"
-repository = "https://gitlab.com/crylib/cry-rs"
+repository = "https://github.com/davxy/cry-rs"
 license = "MIT"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 cry-sys = "0.1.0"
-digest = "0.9.0"
-generic-array = "0.14.4"
-typenum = "1.13.0"
+#cry-sys = { version = "0.1.1", path = "../cry-sys" }
 
 [dev-dependencies]
 hex = "0.4.3"

@@ -1,27 +1,27 @@
 use core::mem::MaybeUninit;
 use cry_sys::bindings::{
-    cry_sha256_clear, cry_sha256_ctx, cry_sha256_digest, cry_sha256_init, cry_sha256_update,
+    cry_sha512_clear, cry_sha512_ctx, cry_sha512_digest, cry_sha512_init, cry_sha512_update,
 };
 
-pub struct Sha256 {
-    inner: cry_sha256_ctx,
+pub struct Sha512 {
+    inner: cry_sha512_ctx,
 }
 
-impl Sha256 {
+impl Sha512 {
     pub fn new() -> Self {
         let inner = unsafe {
             let mut inner = MaybeUninit::uninit().assume_init();
             let ctx = &mut inner as *mut _;
-            cry_sha256_init(ctx);
+            cry_sha512_init(ctx, 0);
             inner
         };
-        Sha256 { inner }
+        Sha512 { inner }
     }
 
     pub fn clear(&mut self) {
         let ctx = &mut self.inner as *mut _;
         unsafe {
-            cry_sha256_clear(ctx);
+            cry_sha512_clear(ctx);
         }
     }
 
@@ -29,23 +29,23 @@ impl Sha256 {
         let ctx = &mut self.inner as *mut _;
         let data = data.as_ref();
         unsafe {
-            cry_sha256_update(ctx, data.as_ptr(), data.len() as u64);
+            cry_sha512_update(ctx, data.as_ptr(), data.len() as u64);
         }
     }
 
-    pub fn digest(&mut self) -> [u8; 32] {
+    pub fn digest(&mut self) -> [u8; 64] {
         let ctx = &mut self.inner as *mut _;
-        let mut output = [0; 32];
+        let mut output = [0; 64];
         unsafe {
-            cry_sha256_digest(ctx, output.as_mut_ptr());
+            cry_sha512_digest(ctx, output.as_mut_ptr());
         }
         output
     }
 }
 
-impl Default for Sha256 {
+impl Default for Sha512 {
     fn default() -> Self {
-        Sha256::new()
+        Sha512::new()
     }
 }
 
@@ -55,16 +55,16 @@ mod test {
 
     #[test]
     fn digest() {
-        let mut sha = Sha256::new();
+        let mut sha = Sha512::new();
 
         sha.update("Hello");
         sha.update("World");
 
-        let digest = sha.digest().to_vec();
+        let digest = sha.digest();
 
         assert_eq!(
             hex::encode(digest),
-            "872e4e50ce9990d8b041330c47c9ddd11bec6b503ae9386a99da8584e9bb12c4"
+            "8ae6ae71a75d3fb2e0225deeb004faf95d816a0a58093eb4cb5a3aa0f197050d7a4dc0a2d5c6fbae5fb5b0d536a0a9e6b686369fa57a027687c3630321547596",
         );
     }
 }

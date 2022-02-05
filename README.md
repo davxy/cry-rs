@@ -1,4 +1,4 @@
-SMILE
------
+CRY-RS
+------
 
-Simple Crypto library in Rust wrapping [CRY](https://gitlab.com/crylib/cry).
+Rust wrapper for [CRY](https://gitlab.com/crylib/cry) crypto library.
