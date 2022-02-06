@@ -1,4 +1,4 @@
-use core::mem::MaybeUninit;
+use core::mem::{self, MaybeUninit};
 use cry_sys::bindings::{
     cry_aes_clear, cry_aes_ctx, cry_aes_encrypt, cry_aes_key_set, cry_ciph_itf, cry_gcm_clear,
     cry_gcm_ctx, cry_gcm_decrypt, cry_gcm_encrypt, cry_gcm_init, cry_gcm_key_set,
@@ -8,23 +8,6 @@ pub struct AesGcm {
     gcm_ctx: cry_gcm_ctx,
     aes_ctx: cry_aes_ctx,
     aes_itf: cry_ciph_itf,
-}
-
-unsafe extern "C" fn aes_key_set(ctx: *mut core::ffi::c_void, key: *const u8, size: u64) {
-    cry_aes_key_set(ctx as *mut cry_aes_ctx, key, size);
-}
-
-unsafe extern "C" fn aes_encrypt(
-    ctx: *mut core::ffi::c_void,
-    dst: *mut u8,
-    src: *const u8,
-    size: u64,
-) {
-    cry_aes_encrypt(ctx as *mut cry_aes_ctx, dst, src, size);
-}
-
-unsafe extern "C" fn aes_clear(ctx: *mut core::ffi::c_void) {
-    cry_aes_clear(ctx as *mut cry_aes_ctx);
 }
 
 impl AesGcm {
@@ -38,9 +21,9 @@ impl AesGcm {
             let aes_itf = &mut this.aes_itf as *mut _;
             let gcm_ctx = &mut this.gcm_ctx as *mut _;
 
-            this.aes_itf.key_set = Some(aes_key_set);
-            this.aes_itf.encrypt = Some(aes_encrypt);
-            this.aes_itf.clear = Some(aes_clear);
+            this.aes_itf.key_set = Some(mem::transmute(cry_aes_key_set as usize));
+            this.aes_itf.encrypt = Some(mem::transmute(cry_aes_encrypt as usize));
+            this.aes_itf.clear = Some(mem::transmute(cry_aes_clear as usize));
 
             cry_gcm_init(gcm_ctx, aes_ctx, aes_itf);
             cry_gcm_key_set(gcm_ctx, key.as_ptr(), len as u64);
