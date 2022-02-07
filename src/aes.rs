@@ -1,7 +1,10 @@
+use crate::cipher::Cipher;
 use core::mem::MaybeUninit;
 use cry_sys::bindings::{
     cry_aes_clear, cry_aes_ctx, cry_aes_decrypt, cry_aes_encrypt, cry_aes_init, cry_aes_key_set,
+    cry_ciph_itf,
 };
+use lazy_static::lazy_static;
 
 struct Aes {
     inner: cry_aes_ctx,
@@ -138,6 +141,26 @@ impl Aes256 {
 
     pub fn decrypt_inplace(&mut self, mut data: impl AsMut<[u8]>) {
         self.0.decrypt_inplace(data.as_mut());
+    }
+}
+
+lazy_static! {
+    static ref CIPH_ITF: cry_ciph_itf = unsafe {
+        cry_ciph_itf {
+            init: Some(core::mem::transmute(cry_aes_init as usize)),
+            clear: Some(core::mem::transmute(cry_aes_clear as usize)),
+            key_set: Some(core::mem::transmute(cry_aes_key_set as usize)),
+            encrypt: Some(core::mem::transmute(cry_aes_encrypt as usize)),
+            decrypt: Some(core::mem::transmute(cry_aes_decrypt as usize)),
+        }
+    };
+}
+
+impl Cipher for Aes128 {
+    type Backend = cry_aes_ctx;
+
+    fn interface() -> *const cry_ciph_itf {
+        &*CIPH_ITF as *const cry_ciph_itf
     }
 }
 

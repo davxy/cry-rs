@@ -1,6 +1,8 @@
+use crate::cipher::Hasher;
 use core::mem::MaybeUninit;
 use cry_sys::bindings::{
-    cry_sha256_clear, cry_sha256_ctx, cry_sha256_digest, cry_sha256_init, cry_sha256_update,
+    cry_hash_itf, cry_sha256_clear, cry_sha256_ctx, cry_sha256_digest, cry_sha256_init,
+    cry_sha256_update,
 };
 
 pub struct Sha256 {
@@ -46,6 +48,26 @@ impl Sha256 {
 impl Default for Sha256 {
     fn default() -> Self {
         Sha256::new()
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref HASH_ITF: cry_hash_itf = unsafe {
+        cry_hash_itf {
+            init: Some(core::mem::transmute(cry_sha256_init as usize)),
+            clear: Some(core::mem::transmute(cry_sha256_clear as usize)),
+            update: Some(core::mem::transmute(cry_sha256_update as usize)),
+            digest: Some(core::mem::transmute(cry_sha256_digest as usize)),
+        }
+    };
+}
+
+impl Hasher for Sha256 {
+    type Backend = cry_sha256_ctx;
+    type DigestLen = typenum::U32;
+
+    fn interface() -> *const cry_hash_itf {
+        &*HASH_ITF as *const cry_hash_itf
     }
 }
 
