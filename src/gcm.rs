@@ -1,6 +1,7 @@
 use crate::{
     aes::{Aes128, Aes256},
-    cipher::Cipher,
+    des::{Des, DesEde},
+    traits::Cipher,
 };
 use core::mem::MaybeUninit;
 use cry_sys::bindings::{
@@ -14,6 +15,8 @@ pub struct Gcm<C: Cipher> {
 
 pub type AesGcm128 = Gcm<Aes128>;
 pub type AesGcm256 = Gcm<Aes256>;
+pub type DesGcm = Gcm<Des>;
+pub type DesEdeGcm = Gcm<DesEde>;
 
 impl<C: Cipher + Sized> Gcm<C> {
     pub fn new(key: impl AsRef<[u8]>) -> Self {
@@ -117,5 +120,20 @@ mod tests {
         ctx.decrypt_inplace(&mut data);
 
         assert_eq!(data, [0; 1024]);
+    }
+
+    #[test]
+    fn des_gcm_encrypt_decrypt() {
+        let key = [0; 16];
+        let mut ctx = DesGcm::new(key);
+        let mut data = [0; 1024];
+
+        let enc = ctx.encrypt(&mut data);
+
+        ctx.reset(&key);
+
+        let dec = ctx.decrypt(enc);
+
+        assert_eq!(&data[..], &dec[..]);
     }
 }

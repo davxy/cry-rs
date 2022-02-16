@@ -1,24 +1,24 @@
 use crate::traits::Cipher;
 use core::mem::MaybeUninit;
 use cry_sys::bindings::{
-    cry_aes_clear, cry_aes_ctx, cry_aes_decrypt, cry_aes_encrypt, cry_aes_init, cry_aes_key_set,
-    cry_ciph_itf,
+    cry_ciph_itf, cry_des_clear, cry_des_ctx, cry_des_decrypt, cry_des_encrypt, cry_des_init,
+    cry_des_key_set,
 };
 use lazy_static::lazy_static;
 
-struct Aes {
-    inner: cry_aes_ctx,
+struct DesImpl {
+    inner: cry_des_ctx,
 }
 
-impl Aes {
+impl DesImpl {
     pub fn new(key: &[u8]) -> Self {
         let inner = unsafe {
             let mut inner = MaybeUninit::uninit().assume_init();
             let ctx = &mut inner as *mut _;
-            cry_aes_init(ctx);
+            cry_des_init(ctx);
             inner
         };
-        let mut this = Aes { inner };
+        let mut this = DesImpl { inner };
         this.reset(key);
         this
     }
@@ -28,7 +28,7 @@ impl Aes {
         let key = key.as_ref();
         let len = key.len();
         unsafe {
-            cry_aes_key_set(ctx, key.as_ptr(), len as u64);
+            cry_des_key_set(ctx, key.as_ptr(), len as u64);
         }
     }
 
@@ -36,7 +36,7 @@ impl Aes {
         let ctx = &mut self.inner as *mut _;
         let mut dst = vec![0u8; src.len()];
         unsafe {
-            cry_aes_encrypt(ctx, dst.as_mut_ptr(), src.as_ptr(), src.len() as u64);
+            cry_des_encrypt(ctx, dst.as_mut_ptr(), src.as_ptr(), src.len() as u64);
         }
         dst
     }
@@ -44,7 +44,7 @@ impl Aes {
     pub fn encrypt_inplace(&mut self, data: &mut [u8]) {
         let ctx = &mut self.inner as *mut _;
         unsafe {
-            cry_aes_encrypt(ctx, data.as_mut_ptr(), data.as_ptr(), data.len() as u64);
+            cry_des_encrypt(ctx, data.as_mut_ptr(), data.as_ptr(), data.len() as u64);
         }
     }
 
@@ -52,7 +52,7 @@ impl Aes {
         let ctx = &mut self.inner as *mut _;
         let mut dst = vec![0u8; src.len()];
         unsafe {
-            cry_aes_decrypt(ctx, dst.as_mut_ptr(), src.as_ptr(), src.len() as u64);
+            cry_des_decrypt(ctx, dst.as_mut_ptr(), src.as_ptr(), src.len() as u64);
         }
         dst
     }
@@ -60,32 +60,32 @@ impl Aes {
     pub fn decrypt_inplace(&mut self, data: &mut [u8]) {
         let ctx = &mut self.inner as *mut _;
         unsafe {
-            cry_aes_decrypt(ctx, data.as_mut_ptr(), data.as_ptr(), data.len() as u64);
+            cry_des_decrypt(ctx, data.as_mut_ptr(), data.as_ptr(), data.len() as u64);
         }
     }
 }
 
-impl Drop for Aes {
+impl Drop for DesImpl {
     fn drop(&mut self) {
         let ctx = &mut self.inner as *mut _;
-        unsafe { cry_aes_clear(ctx) }
+        unsafe { cry_des_clear(ctx) }
     }
 }
 
-pub struct Aes128(Aes);
+pub struct Des(DesImpl);
 
-impl Aes128 {
+impl Des {
     pub fn new(key: impl AsRef<[u8]>) -> Result<Self, ()> {
         let key = key.as_ref();
-        if key.len() != 16 {
+        if key.len() != 8 {
             return Err(());
         }
-        Ok(Aes128(Aes::new(key)))
+        Ok(Des(DesImpl::new(key)))
     }
 
     pub fn reset(&mut self, key: impl AsRef<[u8]>) {
         let key = key.as_ref();
-        if key.len() != 16 {
+        if key.len() != 8 {
             return;
         }
         self.0.reset(key.as_ref());
@@ -108,20 +108,21 @@ impl Aes128 {
     }
 }
 
-pub struct Aes256(Aes);
+/// Triple DES aka Encrypt-Decrypt-Encrypt
+pub struct DesEde(DesImpl);
 
-impl Aes256 {
+impl DesEde {
     pub fn new(key: impl AsRef<[u8]>) -> Result<Self, ()> {
         let key = key.as_ref();
-        if key.len() != 32 {
+        if key.len() != 24 {
             return Err(());
         }
-        Ok(Aes256(Aes::new(key)))
+        Ok(DesEde(DesImpl::new(key)))
     }
 
     pub fn reset(&mut self, key: impl AsRef<[u8]>) {
         let key = key.as_ref();
-        if key.len() != 32 {
+        if key.len() != 24 {
             return;
         }
         self.0.reset(key.as_ref());
@@ -147,25 +148,25 @@ impl Aes256 {
 lazy_static! {
     static ref CIPH_ITF: cry_ciph_itf = unsafe {
         cry_ciph_itf {
-            init: Some(core::mem::transmute(cry_aes_init as usize)),
-            clear: Some(core::mem::transmute(cry_aes_clear as usize)),
-            key_set: Some(core::mem::transmute(cry_aes_key_set as usize)),
-            encrypt: Some(core::mem::transmute(cry_aes_encrypt as usize)),
-            decrypt: Some(core::mem::transmute(cry_aes_decrypt as usize)),
+            init: Some(core::mem::transmute(cry_des_init as usize)),
+            clear: Some(core::mem::transmute(cry_des_clear as usize)),
+            key_set: Some(core::mem::transmute(cry_des_key_set as usize)),
+            encrypt: Some(core::mem::transmute(cry_des_encrypt as usize)),
+            decrypt: Some(core::mem::transmute(cry_des_decrypt as usize)),
         }
     };
 }
 
-impl Cipher for Aes128 {
-    type Backend = cry_aes_ctx;
+impl Cipher for Des {
+    type Backend = cry_des_ctx;
 
     fn interface() -> *const cry_ciph_itf {
         &*CIPH_ITF as *const cry_ciph_itf
     }
 }
 
-impl Cipher for Aes256 {
-    type Backend = cry_aes_ctx;
+impl Cipher for DesEde {
+    type Backend = cry_des_ctx;
 
     fn interface() -> *const cry_ciph_itf {
         &*CIPH_ITF as *const cry_ciph_itf
@@ -177,9 +178,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn aes_128_encrypt_decrypt() {
-        let key = [0; 16];
-        let mut ctx = Aes128::new(&key).unwrap();
+    fn des_encrypt_decrypt() {
+        let key = [0; 8];
+        let mut ctx = Des::new(&key).unwrap();
         let data = [0; 1024];
 
         let enc = ctx.encrypt(&data);
@@ -189,9 +190,9 @@ mod tests {
     }
 
     #[test]
-    fn aes_128_encrypt_decrypt_inplace() {
-        let key = [0; 16];
-        let mut ctx = Aes128::new(&key).unwrap();
+    fn des_encrypt_decrypt_inplace() {
+        let key = [0; 8];
+        let mut ctx = Des::new(&key).unwrap();
         let mut data = [0; 1024];
 
         ctx.encrypt_inplace(&mut data);
@@ -201,9 +202,10 @@ mod tests {
     }
 
     #[test]
-    fn aes_256_encrypt_decrypt() {
-        let key = [0; 32];
-        let mut ctx = Aes256::new(&key).unwrap();
+    fn des_ede_encrypt_decrypt() {
+        let mut key = [0; 24];
+        key[8..16].fill(0xFF);
+        let mut ctx = DesEde::new(&key).unwrap();
         let data = [0; 1024];
 
         let enc = ctx.encrypt(&data);
@@ -213,9 +215,10 @@ mod tests {
     }
 
     #[test]
-    fn aes_256_encrypt_decrypt_inplace() {
-        let key = [0; 32];
-        let mut ctx = Aes256::new(&key).unwrap();
+    fn des_ede_encrypt_decrypt_inplace() {
+        let mut key = [0; 24];
+        key[8..16].fill(0xFF);
+        let mut ctx = DesEde::new(&key).unwrap();
         let mut data = [0; 1024];
 
         ctx.encrypt_inplace(&mut data);

@@ -1,9 +1,9 @@
 use crate::{
-    cipher::Hasher,
     md5::Md5,
     sha1::Sha1,
     sha256::Sha256,
     sha512::{Sha384, Sha512},
+    traits::Hasher,
 };
 use core::mem::MaybeUninit;
 use cry_sys::bindings::{cry_hmac_ctx, cry_hmac_digest, cry_hmac_init, cry_hmac_update};

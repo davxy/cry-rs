@@ -54,6 +54,18 @@ impl HillCipher {
     }
 }
 
+impl Drop for HillCipher {
+    fn drop(&mut self) {
+        let ptr = &mut self.inner as *mut _ as *mut u8;
+        let size = core::mem::size_of_val(self);
+        unsafe {
+            for off in 0..size {
+                core::ptr::write_volatile(ptr.add(off), 0);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

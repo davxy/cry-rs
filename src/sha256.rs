@@ -1,4 +1,4 @@
-use crate::cipher::Hasher;
+use crate::traits::Hasher;
 use core::mem::MaybeUninit;
 use cry_sys::bindings::{
     cry_hash_itf, cry_sha256_clear, cry_sha256_ctx, cry_sha256_digest, cry_sha256_init,
