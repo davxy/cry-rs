@@ -1,10 +1,12 @@
+#[cfg(feature = "weak")]
+use crate::md5::Md5;
 use crate::{
-    md5::Md5,
     sha1::Sha1,
     sha256::Sha256,
     sha512::{Sha384, Sha512},
     traits::Hasher,
 };
+
 use core::mem::MaybeUninit;
 use cry_sys::bindings::{cry_hmac_ctx, cry_hmac_digest, cry_hmac_init, cry_hmac_update};
 use typenum::Unsigned;
@@ -17,8 +19,10 @@ pub struct Hmac<H: Hasher> {
 pub type Sha256Hmac = Hmac<Sha256>;
 pub type Sha384Hmac = Hmac<Sha384>;
 pub type Sha512Hmac = Hmac<Sha512>;
-pub type Md5Hmac = Hmac<Md5>;
 pub type Sha1Hmac = Hmac<Sha1>;
+
+#[cfg(feature = "weak")]
+pub type Md5Hmac = Hmac<Md5>;
 
 impl<H: Hasher> Hmac<H> {
     pub fn new(key: impl AsRef<[u8]>) -> Self {
@@ -124,6 +128,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "weak")]
     #[test]
     fn md5_hmac() {
         let key = [0; 16];
