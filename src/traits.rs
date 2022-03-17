@@ -3,6 +3,7 @@ use typenum::Unsigned;
 
 pub trait Cipher {
     type Backend;
+    //type BlockLen: Unsigned;
 
     fn interface() -> *const cry_ciph_itf;
 }

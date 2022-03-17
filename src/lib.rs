@@ -4,6 +4,7 @@ pub mod base64;
 // Modern strong primitives
 pub mod aes;
 pub mod arc4;
+pub mod cmac;
 pub mod des;
 pub mod gcm;
 pub mod hmac;
