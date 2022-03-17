@@ -8,6 +8,7 @@ pub mod cmac;
 pub mod des;
 pub mod gcm;
 pub mod hmac;
+pub mod mpi;
 pub mod sha1;
 pub mod sha256;
 pub mod sha512;
