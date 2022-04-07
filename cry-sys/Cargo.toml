@@ -1,0 +1,13 @@
+[package]
+name = "cry-sys"
+version = "0.1.1"
+authors = ["Davide Galassi <davxy@datawok.net>"]
+description = "FFI bindings to CRY crypto library"
+repository = "https://github.com/davxy/cry-sys"
+license = "MIT"
+edition = "2021"
+
+[build-dependencies]
+walkdir = "2.3.2"
+bindgen = "0.59.2"
+cc = { version = "1.0.67", features = ["parallel"] }
