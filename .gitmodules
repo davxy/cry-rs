@@ -1,0 +1,3 @@
+[submodule "cry-sys/cry"]
+	path = cry-sys/cry
+	url = https://github.com/davxy/cry.git
