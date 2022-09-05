@@ -16,7 +16,7 @@ pub struct Mpi {
 // We're not supposed to recover from this type of errors here.
 macro_rules! checked {
     ($op:expr) => {
-        if $op != 0 {
+        if unsafe { $op } != 0 {
             panic!("Out of memory error");
         }
     };
@@ -24,12 +24,8 @@ macro_rules! checked {
 
 impl Mpi {
     pub fn new() -> Self {
-        let backend = unsafe {
-            let mut backend = MaybeUninit::uninit().assume_init();
-            let ctx = &mut backend as *mut _;
-            checked!(cry_mpi_init(ctx));
-            backend
-        };
+        let mut backend = unsafe { MaybeUninit::uninit().assume_init() };
+        checked!(cry_mpi_init(&mut backend));
         Mpi { backend }
     }
 
@@ -39,8 +35,7 @@ impl Mpi {
         v.push(0);
         let backend = unsafe {
             let mut backend = MaybeUninit::uninit().assume_init();
-            let ctx = &mut backend as *mut _;
-            if cry_mpi_init_str(ctx, 16, v.as_ptr() as *const i8) != 0 {
+            if cry_mpi_init_str(&mut backend, 16, v.as_ptr() as *const i8) != 0 {
                 return Err("Invalid hex string".into());
             }
             backend
@@ -49,7 +44,7 @@ impl Mpi {
     }
 
     pub fn bits_count(&self) -> usize {
-        unsafe { cry_mpi_count_bits(&self.backend as *const _) as usize }
+        unsafe { cry_mpi_count_bits(&self.backend) as usize }
     }
 
     pub fn bytes_count(&self) -> usize {
@@ -58,37 +53,19 @@ impl Mpi {
 
     pub fn add(&self, other: &Self) -> Self {
         let mut res = Mpi::new();
-        unsafe {
-            checked!(cry_mpi_add(
-                &mut res.backend as *mut _,
-                &self.backend,
-                &other.backend
-            ))
-        }
+        checked!(cry_mpi_add(&mut res.backend, &self.backend, &other.backend));
         res
     }
 
     pub fn sub(&self, other: &Self) -> Self {
         let mut res = Mpi::new();
-        unsafe {
-            checked!(cry_mpi_sub(
-                &mut res.backend as *mut _,
-                &self.backend,
-                &other.backend
-            ))
-        }
+        checked!(cry_mpi_sub(&mut res.backend, &self.backend, &other.backend));
         res
     }
 
     pub fn mul(&self, other: &Self) -> Self {
         let mut res = Mpi::new();
-        unsafe {
-            checked!(cry_mpi_mul(
-                &mut res.backend as *mut _,
-                &self.backend,
-                &other.backend
-            ))
-        }
+        checked!(cry_mpi_mul(&mut res.backend, &self.backend, &other.backend));
         res
     }
 
@@ -96,14 +73,12 @@ impl Mpi {
     pub fn div_rem(&self, other: &Self) -> (Self, Self) {
         let mut q = Mpi::new();
         let mut r = Mpi::new();
-        unsafe {
-            checked!(cry_mpi_div(
-                &mut q.backend,
-                &mut r.backend,
-                &self.backend,
-                &other.backend
-            ))
-        }
+        checked!(cry_mpi_div(
+            &mut q.backend,
+            &mut r.backend,
+            &self.backend,
+            &other.backend
+        ));
         (q, r)
     }
 
@@ -117,75 +92,62 @@ impl Mpi {
 
     pub fn mod_exp(&self, exp: &Self, modulus: &Self) -> Self {
         let mut res = Mpi::new();
-        unsafe {
-            checked!(cry_mpi_mod_exp(
-                &mut res.backend as *mut _,
-                &self.backend,
-                &exp.backend,
-                &modulus.backend
-            ));
-        }
+        checked!(cry_mpi_mod_exp(
+            &mut res.backend,
+            &self.backend,
+            &exp.backend,
+            &modulus.backend
+        ));
         res
     }
 
     pub fn add_assign(&mut self, other: &Self) {
-        unsafe {
-            checked!(cry_mpi_add(
-                &mut self.backend,
-                &self.backend,
-                &other.backend
-            ));
-        }
+        checked!(cry_mpi_add(
+            &mut self.backend,
+            &self.backend,
+            &other.backend
+        ));
     }
 
     pub fn sub_assign(&mut self, other: &Self) {
-        unsafe {
-            checked!(cry_mpi_sub(
-                &mut self.backend,
-                &self.backend,
-                &other.backend
-            ));
-        }
+        checked!(cry_mpi_sub(
+            &mut self.backend,
+            &self.backend,
+            &other.backend
+        ));
     }
 
     pub fn mul_assign(&mut self, other: &Self) {
-        unsafe {
-            checked!(cry_mpi_mul(
-                &mut self.backend,
-                &self.backend,
-                &other.backend
-            ));
-        }
+        checked!(cry_mpi_mul(
+            &mut self.backend,
+            &self.backend,
+            &other.backend
+        ));
     }
 
     pub fn div_assign(&mut self, other: &Self) {
-        unsafe {
-            checked!(cry_mpi_div(
-                &mut self.backend,
-                core::ptr::null_mut(),
-                &self.backend,
-                &other.backend
-            ));
-        }
+        checked!(cry_mpi_div(
+            &mut self.backend,
+            core::ptr::null_mut(),
+            &self.backend,
+            &other.backend
+        ));
     }
 
     pub fn rem_assign(&mut self, other: &Self) {
-        unsafe {
-            checked!(cry_mpi_div(
-                core::ptr::null_mut(),
-                &mut self.backend,
-                &self.backend,
-                &other.backend
-            ));
-        }
+        checked!(cry_mpi_div(
+            core::ptr::null_mut(),
+            &mut self.backend,
+            &self.backend,
+            &other.backend
+        ));
     }
 }
 
 impl Drop for Mpi {
     fn drop(&mut self) {
-        let backend = &mut self.backend as *mut _;
         unsafe {
-            cry_mpi_clear(backend);
+            cry_mpi_clear(&mut self.backend);
         }
     }
 }
@@ -193,9 +155,7 @@ impl Drop for Mpi {
 impl Clone for Mpi {
     fn clone(&self) -> Self {
         let mut res = Mpi::new();
-        unsafe {
-            cry_mpi_copy(&mut res.backend as *mut _, &self.backend as *const _);
-        }
+        checked!(cry_mpi_copy(&mut res.backend, &self.backend));
         res
     }
 }
@@ -273,12 +233,13 @@ impl RemAssign for Mpi {
 impl Display for Mpi {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut bytes: Vec<u8> = vec![0; 2 * (10 + self.bytes_count())];
-        let s = unsafe {
-            cry_mpi_store_str(&self.backend as *const _, 16, bytes.as_mut_ptr() as *mut i8);
-            let off = bytes.iter().rposition(|&c| c != 0).unwrap_or_default();
-            String::from_utf8_unchecked(bytes[0..=off].to_owned())
-        };
-        write!(f, "{}", s)
+        checked!(cry_mpi_store_str(
+            &self.backend,
+            16,
+            bytes.as_mut_ptr() as *mut i8
+        ));
+        let off = bytes.iter().rposition(|&c| c != 0).unwrap_or_default();
+        write!(f, "{}", String::from_utf8_lossy(&bytes[0..=off]))
     }
 }
 
