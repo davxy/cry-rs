@@ -24,11 +24,8 @@ impl Aes {
     }
 
     pub fn reset(&mut self, key: &[u8]) {
-        let ctx = &mut self.inner as *mut _;
-        let key = key.as_ref();
-        let len = key.len();
         unsafe {
-            cry_aes_key_set(ctx, key.as_ptr(), len as u64);
+            cry_aes_key_set(&mut self.inner, key.as_ptr(), key.len() as u64);
         }
     }
 
