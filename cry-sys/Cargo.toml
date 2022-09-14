@@ -1,6 +1,6 @@
 [package]
 name = "cry-sys"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Davide Galassi <davxy@datawok.net>"]
 description = "FFI bindings to CRY crypto library"
 repository = "https://github.com/davxy/cry-sys"

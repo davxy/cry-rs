@@ -8,10 +8,9 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-cry-sys = "0.1.0"
 lazy_static = "1.4.0"
 typenum = "1.15.0"
-#cry-sys = { version = "0.1.1", path = "../cry-sys" }
+cry-sys = { path = "./cry-sys" }
 
 [dev-dependencies]
 hex = "0.4.3"
